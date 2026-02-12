@@ -28,7 +28,15 @@ import (
 
 // BeginBlock updates base fee
 func (k *Keeper) BeginBlock(ctx sdk.Context) error {
+	// Log the previous block's gas wanted (used as input for base fee calculation)
+	prevBlockGasWanted := k.GetBlockGasWanted(ctx)
 	baseFee := k.CalculateBaseFee(ctx)
+
+	k.Logger(ctx).Info("xxx feemarket BeginBlock",
+		"height", ctx.BlockHeight(),
+		"prevBlockGasWanted", prevBlockGasWanted,
+		"baseFee", baseFee,
+	)
 
 	// return immediately if base fee is nil
 	if baseFee == nil {
@@ -73,6 +81,14 @@ func (k *Keeper) EndBlock(ctx sdk.Context) error {
 	limitedGasWanted := sdkmath.LegacyNewDec(gw).Mul(minGasMultiplier)
 	gasWanted = sdkmath.LegacyMaxDec(limitedGasWanted, sdkmath.LegacyNewDec(gasUsed)).TruncateInt().Uint64()
 	k.SetBlockGasWanted(ctx, gasWanted)
+
+	k.Logger(ctx).Info("xxx feemarket EndBlock",
+		"height", ctx.BlockHeight(),
+		"ctxBlockGasWanted", ctx.BlockGasWanted(),
+		"ctxBlockGasUsed", ctx.BlockGasUsed(),
+		"minGasMultiplier", minGasMultiplier,
+		"updatedGasWanted", gasWanted,
+	)
 
 	defer func() {
 		telemetry.SetGauge(float32(gasWanted), "feemarket", "block_gas")
